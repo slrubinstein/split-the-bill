@@ -1,0 +1,10 @@
+{
+	"apiUrl": {
+		"desktop-local": "'local'",
+		"desktop-test": "'test'",
+		"desktop-prod": "'prod'",
+		"mobile-local": "'http://localhost:9000'",
+		"mobile-test": "''",
+		"mobile-prod": "''"
+	}
+}

@@ -1,4 +1,19 @@
 {
-  "name": "populate-ionic",
-  "app_id": "0164b25d"
+  "name": "ionic-app",
+  "app_id": "0164b25d",
+
+  "comment_on_proxies_usage": "fill in appropriate api endpoints for local, test, and production environments",
+  
+  "proxies": [
+    {
+      "path": "/local/api",
+      "proxyUrl": "http://localhost:9000/api"
+    }, {
+      "path": "/test/api",
+      "proxyUrl": ""
+    }, {
+      "path": "/prod/api",
+      "proxyUrl": ""
+    }
+  ]
 }

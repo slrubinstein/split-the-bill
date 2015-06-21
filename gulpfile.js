@@ -10,6 +10,12 @@ var autoprefixer = require('gulp-autoprefixer');
 var uglify = require('gulp-uglify');
 var ngAnnotate = require('gulp-ng-annotate');
 var templateCache = require('gulp-angular-templatecache');
+var fs = require('fs');
+var args = require('yargs').argv;
+var replace = require('gulp-replace');
+var runSequence = require('run-sequence');
+var mainBowerFiles = require('main-bower-files');
+var gulpFilter = require('gulp-filter');
 
 var paths = {
   sass: ['./scss/**/*.scss'],
@@ -17,7 +23,9 @@ var paths = {
   html: ['./src/**/*.html']
 };
 
-gulp.task('default', ['sass', 'templates', 'scripts-app', 'scripts-lib']);
+gulp.task('default', function() {
+  runSequence('replace-api', ['sass', 'scripts-app', 'scripts-lib', 'css-lib']);
+});
 
 gulp.task('sass', function(done) {
   gulp.src('./scss/populate.scss')
@@ -39,27 +47,7 @@ gulp.task('watch', function() {
   gulp.watch(paths.html, ['templates', 'scripts-app']);
 });
 
-gulp.task('install', ['git-check'], function() {
-  return bower.commands.install()
-    .on('log', function(data) {
-      gutil.log('bower', gutil.colors.cyan(data.id), data.message);
-    });
-});
-
-gulp.task('git-check', function(done) {
-  if (!sh.which('git')) {
-    console.log(
-      '  ' + gutil.colors.red('Git is not installed.'),
-      '\n  Git, the version control system, is required to download Ionic.',
-      '\n  Download git here:', gutil.colors.cyan('http://git-scm.com/downloads') + '.',
-      '\n  Once git is installed, run \'' + gutil.colors.cyan('gulp install') + '\' again.'
-    );
-    process.exit(1);
-  }
-  done();
-});
-
-gulp.task('scripts-app', function() {
+gulp.task('scripts-app', ['templates'], function() {
   return gulp.src([
       '!./src/lib/*',
       './src/**/*.js'
@@ -73,24 +61,63 @@ gulp.task('scripts-app', function() {
 });
 
 gulp.task('scripts-lib', function() {
-  var lib = gulp.src([
-      '!./src/lib/**/*.min.js',
-      './src/lib/**/*.js'
-    ])
+  var libFiles = [
+
+    // ignore ionic and angular which are in www/lib/ionic.bundle
+    '!./src/lib/bower/ionic/**/*',
+    '!./src/lib/bower/angular/**/*',
+    '!./src/lib/bower/angular-animate/**/*',
+    '!./src/lib/bower/angular-sanitize/**/*',
+    '!./src/lib/bower/angular-ui-router/**/*',
+
+    // include any manually installed front end libraries
+    './src/lib/manual/**/*.js'
+  ];
+
+  return gulp.src(mainBowerFiles().concat(libFiles))
+    .pipe(gulpFilter('**/*.js'))
     .pipe(concat('lib.js'))
+    .pipe(gulp.dest('./www/js/'))
+    .pipe(uglify())
+    .pipe(rename({ extname: '.min.js' }))
     .pipe(gulp.dest('./www/js/'));
+});
 
-  var libMin = gulp.src('./src/lib/**/*.min.js')
-    .pipe(concat('lib.min.js'))
-    .pipe(gulp.dest('./www/js/'));
+gulp.task('css-lib', function() {
+  var libFiles = [
+    '!./src/lib/ionic/**/*',
+    './src/lib/manual/**/*.css'
+  ];
 
-  return [lib, libMin];
+  return gulp.src(mainBowerFiles().concat(libFiles))
+    .pipe(gulpFilter('**/*.css'))
+    .pipe(concat('lib.css'))
+    .pipe(gulp.dest('./www/css/'))
+    .pipe(minifyCss({
+      keepSpecialComments: 0
+    }))
+    .pipe(rename({ extname: '.min.css' }))
+    .pipe(gulp.dest('./www/css/'));
 });
 
 gulp.task('templates', function () {
-  gulp.src('src/**/*.html')
+  return gulp.src('src/**/*.html')
     .pipe(templateCache({
-      module: 'starter'
+      module: 'ionic-app'
     }))
     .pipe(gulp.dest('src/public'));
 });
+
+/**
+ * Remember to call with environment i.e. gulp --env desktop-test (defaults to desktop-local)
+ * replace task runs before everything else
+ */
+gulp.task('replace-api', function() {
+  var env = args.env || 'desktop-local';
+  var config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+  console.log('environment: ', env);
+
+  return gulp.src('./src/app.js')
+    .pipe(replace(/\/\*gulp-replace-apiUrl\*\/(.*?)\/\*end\*\//g, '/*gulp-replace-apiUrl*/' + config.apiUrl[env] + '/*end*/'))
+    .pipe(gulp.dest('./src/'));
+})
