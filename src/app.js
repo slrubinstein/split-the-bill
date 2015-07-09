@@ -1,4 +1,4 @@
-angular.module('ionicApp', ['ionic', 'starter.controllers', 'starter.services'])
+angular.module('ionic-app', ['ionic', 'starter.controllers', 'starter.services'])
 
 .constant('apiEndpoint', {
   url: /*gulp-replace-apiUrl*/'local'/*end*/

@@ -101,9 +101,11 @@ gulp.task('css-lib', function() {
 });
 
 gulp.task('templates', function () {
+  var appName = JSON.parse(fs.readFileSync('./ionic.project', 'utf8')).name;
+
   return gulp.src('src/**/*.html')
     .pipe(templateCache({
-      module: 'ionic-app'
+      module: appName
     }))
     .pipe(gulp.dest('src/public'));
 });
@@ -120,4 +122,41 @@ gulp.task('replace-api', function() {
   return gulp.src('./src/app.js')
     .pipe(replace(/\/\*gulp-replace-apiUrl\*\/(.*?)\/\*end\*\//g, '/*gulp-replace-apiUrl*/' + config.apiUrl[env] + '/*end*/'))
     .pipe(gulp.dest('./src/'));
-})
+});
+
+/**
+ * To be run once at the start of development. Not ideal.
+ * But currently will rename ionic-app as your app name.
+ * Can pass in a name as --name your-app-name or will pull 
+ * the name from ionic.project. Or will just run and keep 
+ * everything named ionic-app as a safety so it can be rerun later.
+ */
+gulp.task('name-app', function() {
+  var appName = args.name || 
+    JSON.parse(fs.readFileSync('./ionic.project', 'utf8')).name || 
+    'ionic-app';
+
+  var files = [{
+    name: './bower.json', dir: './'
+  }, {
+    name: './ionic.project', dir: './'
+  }, {
+    name: './package.json', dir: './'
+  }, {
+    name: './src/app.js', dir: './src'
+  }, {
+    name: './src/common/data.service.js', dir: './src'
+  }];
+
+  console.log('Renaming app to', appName);
+
+  files.forEach(function(f) {
+    replaceAppName(f);
+  });
+
+  function replaceAppName(file) {
+    return gulp.src(file.name)
+      .pipe(replace('ionic-app', appName))
+      .pipe(gulp.dest(file.dir));
+  }
+});
