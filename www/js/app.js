@@ -1,4 +1,4 @@
-angular.module('ionicApp', ['ionic', 'starter.controllers', 'starter.services'])
+angular.module('ionic-app', ['ionic', 'starter.controllers', 'starter.services'])
 
 .constant('apiEndpoint', {
   url: /*gulp-replace-apiUrl*/'local'/*end*/
@@ -66,7 +66,24 @@ angular.module('ionicApp', ['ionic', 'starter.controllers', 'starter.services'])
   $urlRouterProvider.otherwise('/tab/dash');
 
 });
+angular.module('ionic-app')
+	.factory('dataService', dataService);
 
+function dataService($http, apiEndpoint) {
+
+	return {
+		getItems: getItems,
+		createItem: createItem
+	}
+
+	function getItems() {
+		return $http.get(apiEndpoint.url + '/api/items');
+	}
+
+	function createItem(item) {
+		return $http.post(apiEndpoint.url + '/api/items', item);
+	}
+}
 angular.module('ionic-app')
 	.factory('dataService', dataService);
 
